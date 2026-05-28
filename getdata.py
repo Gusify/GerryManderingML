@@ -1,14 +1,18 @@
 import shapefile
 import csv
+import random
 
 # uncomment and set your own paths. Make sure to not include file extension
-# sf_path = "rawdata/tx_2020_gen_2020_blocks/tx_2020_gen_2020_blocks"
-# csv_train_path = "cleandata/texas_training.csv"
-# csv_test_path = "cleandata/texas_testing.csv"
+# sf_path = "D:/AIProj1/rawdata/tx_2020_gen_2020_blocks/tx_2020_gen_2020_blocks"
+# csv_train_path = "D:/AIProj1/cleandata/texas_training.csv"
+# csv_test_path = "D:/AIProj1/cleandata/texas_testing.csv"
 
 sf = shapefile.Reader(sf_path)
 fields = sf.fields[1:]
-field_names = [field[0] for field in fields]
+field_names = []
+for field in fields:
+    field_names.append(field[0])
+print(field_names)
 democrat_fields = []
 republican_fields = []
 field_counter = 0
@@ -23,6 +27,7 @@ records = sf.shapeRecords()
 train_data = []
 test_data = []
 for data in records:
+    #bbox 0 and 2 are lat data, take avg. Same for 1 and 3
     lat = round((data.shape.bbox[0] + data.shape.bbox[2]) / 2, 7) # 7 because Nix's coords were at 7 decimal places
     long = round((data.shape.bbox[1] + data.shape.bbox[3]) / 2, 7)
     id = data.record[0]
@@ -31,6 +36,8 @@ for data in records:
     r_vote = 0
     total_votes = 0
     index = 5
+    test_split_rand = random.randint(1, 5) # split 1:4 between test and train. Trying to preemptively prevent overfitting.
+
     for votes in data.record[5:]:
         if index in democrat_fields:
             d_vote += votes
@@ -41,8 +48,10 @@ for data in records:
     if total_votes > 0:
         d_vote = d_vote / total_votes
         r_vote = r_vote / total_votes
-    train_data.append([id, lat, long, voting_pop, d_vote, r_vote])
-    test_data.append([id, lat, long, voting_pop])
+    if test_split_rand == 1:
+        test_data.append([id, lat, long, voting_pop])
+    else:
+        train_data.append([id, lat, long, voting_pop, total_votes, d_vote, r_vote])
     
 with open(csv_train_path, 'w', newline='') as csvtrainfile:
     writer = csv.writer(csvtrainfile)
