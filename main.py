@@ -24,13 +24,21 @@ def main():
         x_y = [block[1], block[2]]
         coordinates.append(x_y)
     
-    # scipy idea from top answer on https://stackoverflow.com/questions/12923586/nearest-neighbor-search-python
     block_tree = scipy.spatial.KDTree(coordinates, leafsize=100)
-    result = block_tree.query(coordinates[0], k=INPUT_SIZE)
-    #result[0] is distances, doesn't matter. result[1] has indexes, result[1][0] is self
-    nearest_indexes = result[1]
 
-    print(nearest_indexes)
+    for block in coordinates:
+        input_data = []
+        # scipy idea from top answer on https://stackoverflow.com/questions/12923586/nearest-neighbor-search-python
+        result = block_tree.query(block, k=INPUT_SIZE)
+        #result[0] is distances, doesn't matter. result[1] has indexes, result[1][0] is self
+        nearest_indexes = result[1]
+        for index in nearest_indexes:
+            input_data.append(training_data[index])
+
+        #do we want to try numpy?
+        x = torch.tensor(input_data)
+        #Input into model here...
+        
 
 
 
