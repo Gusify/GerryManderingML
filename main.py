@@ -27,16 +27,21 @@ def main():
     block_tree = scipy.spatial.KDTree(coordinates, leafsize=100)
 
     for block in coordinates:
-        input_data = []
+        input_data_x = []
+        input_data_y = []
         # scipy idea from top answer on https://stackoverflow.com/questions/12923586/nearest-neighbor-search-python
         result = block_tree.query(block, k=INPUT_SIZE)
         #result[0] is distances, doesn't matter. result[1] has indexes, result[1][0] is self
         nearest_indexes = result[1]
         for index in nearest_indexes:
             #id can't be put into tensor or np array, nor is it important data for building the model
-            input_data.append(training_data[index][1:])
+            input_data_x.append(training_data[index][1:5])
+            input_data_y.append(training_data[index][5:])
+            print(training_data[index][1:5])
+            print(training_data[index][5:])
         #do we want to try numpy?
-        x = torch.tensor(input_data)
+        x = torch.tensor(input_data_x)
+        y = torch.tensor(input_data_y)
         #Input into model here...
         
 
