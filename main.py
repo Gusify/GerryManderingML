@@ -13,7 +13,7 @@ def main():
         # Gus you'll probably need to edit this path unless you copy mine
         file_path = "D:/AIProj1/cleandata/" + name + "_training.csv"
         with open(file_path, 'r', newline='') as csvtestfile:
-            reader = csv.reader(csvtestfile)
+            reader = csv.reader(csvtestfile, quoting=csv.QUOTE_NONNUMERIC)
             for row in reader:
                 training_data.append(row)
 
@@ -33,8 +33,8 @@ def main():
         #result[0] is distances, doesn't matter. result[1] has indexes, result[1][0] is self
         nearest_indexes = result[1]
         for index in nearest_indexes:
-            input_data.append(training_data[index])
-
+            #id can't be put into tensor or np array, nor is it important data for building the model
+            input_data.append(training_data[index][1:])
         #do we want to try numpy?
         x = torch.tensor(input_data)
         #Input into model here...
