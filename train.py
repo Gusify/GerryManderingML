@@ -20,7 +20,7 @@ def main():
                 training_data.append(row)
 
     training_data = np.array(training_data)
-    training_data = training_data[:, 1:] #remove id
+    training_data = training_data[:, 1:] #keep all rows of data, remove id
 
     coordinates = []
     for block in training_data:
