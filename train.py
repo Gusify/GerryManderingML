@@ -37,6 +37,18 @@ def main():
         block = result[1][0]
         n_nearest_neighbors[block] = nearest_indexes
 
+    for epoch in range(NUM_EPOCHS):
+        index_counter = 0
+        for row in training_data:
+            x = [] #row is first thing in nearest neighbors, don't need to add
+            y = row[5:] # R_vote, D_vote
+            nearest_neighbors = n_nearest_neighbors.get(index_counter)
+            for neighbor in nearest_neighbors:
+                x.append(training_data[neighbor][1:5])
+
+            index_counter += 1 
+
+            
 
 
 
