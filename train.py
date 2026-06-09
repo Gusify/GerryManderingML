@@ -1,5 +1,6 @@
 import torch
 import scipy
+import numpy as np
 import csv
 
 INPUT_SIZE = 64
@@ -18,12 +19,13 @@ def main():
             for row in reader:
                 training_data.append(row)
 
-    print(len(training_data))
+    training_data = np.array(training_data)
+    training_data = training_data[:, 1:] #remove id
 
     coordinates = []
     for block in training_data:
-        x_y = [block[1], block[2]]
-        coordinates.append(x_y)
+        long_lat = [block[0], block[1]]
+        coordinates.append(long_lat)
     
     block_tree = scipy.spatial.KDTree(coordinates, leafsize=100)
 
@@ -41,11 +43,10 @@ def main():
         index_counter = 0
         for row in training_data:
             x = [] #row is first thing in nearest neighbors, don't need to add
-            y = row[5:] # R_vote, D_vote
+            y = row[4:] # R_vote, D_vote
             nearest_neighbors = n_nearest_neighbors.get(index_counter)
             for neighbor in nearest_neighbors:
-                x.append(training_data[neighbor][1:5])
-
+                x.append(training_data[neighbor][0:4])
             index_counter += 1 
 
             
