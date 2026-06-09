@@ -2,7 +2,8 @@ import torch
 import scipy
 import csv
 
-INPUT_SIZE = 100
+INPUT_SIZE = 64
+NUM_EPOCHS = 1
 def main():
     print(f"PyTorch version: {torch.__version__}")
     
@@ -26,22 +27,15 @@ def main():
     
     block_tree = scipy.spatial.KDTree(coordinates, leafsize=100)
 
+    # holds a list of n nearest neighbors for our inputs. dict key is index, includes self in array
+    n_nearest_neighbors = {}
     for block in coordinates:
-        input_data_x = []
-        input_data_y = []
         # scipy idea from top answer on https://stackoverflow.com/questions/12923586/nearest-neighbor-search-python
         result = block_tree.query(block, k=INPUT_SIZE)
         #result[0] is distances, doesn't matter. result[1] has indexes, result[1][0] is self
         nearest_indexes = result[1]
-        for index in nearest_indexes:
-            #id can't be put into tensor or np array, nor is it important data for building the model
-            input_data_x.append(training_data[index][1:5])
-            input_data_y.append(training_data[index][5:])
-        #do we want to try numpy?
-        x = torch.tensor(input_data_x)
-        y = torch.tensor(input_data_y)
-        #Input into model here...
-        
+        block = result[1][0]
+        n_nearest_neighbors[block] = nearest_indexes
 
 
 
