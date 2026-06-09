@@ -37,8 +37,6 @@ def main():
             #id can't be put into tensor or np array, nor is it important data for building the model
             input_data_x.append(training_data[index][1:5])
             input_data_y.append(training_data[index][5:])
-            print(training_data[index][1:5])
-            print(training_data[index][5:])
         #do we want to try numpy?
         x = torch.tensor(input_data_x)
         y = torch.tensor(input_data_y)
