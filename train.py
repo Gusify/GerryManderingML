@@ -22,17 +22,15 @@ def main():
     training_data = np.array(training_data)
     training_data = training_data[:, 1:] #keep all rows of data, remove id
 
-    coordinates = []
-    for block in training_data:
-        long_lat = [block[0], block[1]]
-        coordinates.append(long_lat)
+    #all rows, just latitude and longitude for coordinates. np array
+    coordinates = training_data[:, 0:2]
     
+    # scipy idea from top answer on https://stackoverflow.com/questions/12923586/nearest-neighbor-search-python
     block_tree = scipy.spatial.KDTree(coordinates, leafsize=100)
 
     # holds a list of n nearest neighbors for our inputs. dict key is index, includes self in array
     n_nearest_neighbors = {}
     for block in coordinates:
-        # scipy idea from top answer on https://stackoverflow.com/questions/12923586/nearest-neighbor-search-python
         result = block_tree.query(block, k=INPUT_SIZE)
         #result[0] is distances, doesn't matter. result[1] has indexes, result[1][0] is self
         nearest_indexes = result[1]
@@ -48,6 +46,8 @@ def main():
             for neighbor in nearest_neighbors:
                 x.append(training_data[neighbor][0:4])
             index_counter += 1 
+            print(x)
+            print(y)
 
             
 
