@@ -2,9 +2,16 @@ import torch
 import scipy
 import numpy as np
 import csv
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
+
+from model import VoteMLP
 
 INPUT_SIZE = 64
-NUM_EPOCHS = 1
+NUM_EPOCHS = 30          
+BATCH_SIZE = 4096
+LEARNING_RATE = 1e-3
+MODEL_OUT = "model.pt"
 def main():
     print(f"PyTorch version: {torch.__version__}")
     
@@ -13,7 +20,7 @@ def main():
 
     for name in state_names:
         # Gus you'll probably need to edit this path unless you copy mine
-        file_path = "D:/AIProj1/cleandata/" + name + "_training.csv"
+        file_path = "cleandata/" + name + "_training.csv"
         with open(file_path, 'r', newline='') as csvtestfile:
             reader = csv.reader(csvtestfile, quoting=csv.QUOTE_NONNUMERIC)
             for row in reader:
@@ -37,17 +44,74 @@ def main():
         block = result[1][0]
         n_nearest_neighbors[block] = nearest_indexes
 
+
+    base = training_data[:, 0:4].astype(np.float32)        # lon, lat, pop, votes
+    targets = training_data[:, 4:6].astype(np.float32)     # d_vote, r_vote
+    num_blocks = training_data.shape[0]
+
+    feat_mean = base.mean(axis=0)
+    feat_std = base.std(axis=0)
+    feat_std = np.where(feat_std < 1e-8, 1.0, feat_std)
+    base_norm = ((base - feat_mean) / feat_std).astype(np.float32)
+
+    neighbor_idx = np.empty((num_blocks, INPUT_SIZE), dtype=np.int64)
+    for index_counter in range(num_blocks):
+        neighbor_idx[index_counter] = n_nearest_neighbors.get(index_counter)
+
+    X = base_norm[neighbor_idx].reshape(num_blocks, INPUT_SIZE * 4)
+    Y = targets
+
+    device = (
+        torch.device("cuda") if torch.cuda.is_available()
+        else torch.device("mps") if torch.backends.mps.is_available()
+        else torch.device("cpu")
+    )
+    print(f"Device: {device}  |  {num_blocks} blocks, input dim {INPUT_SIZE * 4}")
+
+    # train / validation split
+    rng = np.random.default_rng(0)
+    perm = rng.permutation(num_blocks)
+    X, Y = X[perm], Y[perm]
+    n_val = int(num_blocks * 0.1)
+    Xtr, Ytr = X[n_val:], Y[n_val:]
+    Xva = torch.from_numpy(X[:n_val]).to(device)
+    Yva = torch.from_numpy(Y[:n_val]).to(device)
+
+    train_dl = DataLoader(
+        TensorDataset(torch.from_numpy(Xtr), torch.from_numpy(Ytr)),
+        batch_size=BATCH_SIZE, shuffle=True,
+    )
+
+    model = VoteMLP(in_dim=INPUT_SIZE * 4).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    loss_fn = nn.MSELoss()
+
     for epoch in range(NUM_EPOCHS):
-        index_counter = 0
-        for row in training_data:
-            x = [] #row is first thing in nearest neighbors, don't need to add
-            y = row[4:] # R_vote, D_vote
-            nearest_neighbors = n_nearest_neighbors.get(index_counter)
-            for neighbor in nearest_neighbors:
-                x.append(training_data[neighbor][0:4])
-            index_counter += 1 
-            print(x)
-            print(y)
+        model.train()
+        running = 0.0
+        for xb, yb in train_dl:
+            xb, yb = xb.to(device), yb.to(device)
+            optimizer.zero_grad()
+            loss = loss_fn(model(xb), yb)
+            loss.backward()
+            optimizer.step()
+            running += loss.item() * xb.shape[0]
+        train_mse = running / len(Xtr)
+
+        model.eval()
+        with torch.no_grad():
+            vpred = model(Xva)
+            val_mae = (vpred - Yva).abs().mean().item()
+            win_acc = ((vpred[:, 0] > vpred[:, 1]) == (Yva[:, 0] > Yva[:, 1])).float().mean().item()
+        print(f"epoch {epoch + 1:>3}  train_mse {train_mse:.5f}  "
+              f"val_mae {val_mae:.5f}  win_acc {win_acc:.3f}")
+
+    torch.save(
+        {"state_dict": model.state_dict(), "input_size": INPUT_SIZE,
+         "feat_mean": feat_mean, "feat_std": feat_std},
+        MODEL_OUT,
+    )
+    print(f"Saved model -> {MODEL_OUT}")
 
             
 
