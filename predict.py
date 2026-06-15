@@ -33,7 +33,7 @@ def build_features(data, input_size, feat_mean, feat_std):
     base_norm = ((base - feat_mean) / feat_std).astype(np.float32)
 
     n = coordinates.shape[0]
-    tree = scipy.spatial.cKDTree(coordinates)
+    tree = scipy.spatial.KDTree(coordinates)
     k = min(input_size, n)
     _, idx = tree.query(coordinates, k=k, workers=-1)       # (N, k)
     if k == 1:
