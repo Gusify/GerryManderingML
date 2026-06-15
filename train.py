@@ -15,7 +15,7 @@ MODEL_OUT = "model.pt"
 def main():
     print(f"PyTorch version: {torch.__version__}")
     
-    state_names = ["california", "missouri", "montana", "oklahoma", "texas"]
+    state_names = ["california", "missouri", "montana", "oklahoma", "texas", "tennessee"]
     training_data = []
 
     for name in state_names:
