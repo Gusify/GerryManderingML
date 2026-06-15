@@ -69,10 +69,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("test_csv")
     ap.add_argument("out_csv")
+    ap.add_argument("train_path")
     ap.add_argument("--model", default="model.pt")
     args = ap.parse_args()
 
     data, preds = predict(args.model, args.test_csv)
+
+
+    training_data = []
+    with open(args.train_path, 'r', newline='') as csvtrainfile:
+        reader = csv.reader(csvtrainfile, quoting=csv.QUOTE_NONNUMERIC)
+        for row in reader:
+            training_data.append(row)
+
+    r_vote_difference = 0
+    d_vote_difference = 0
 
     out_dir = os.path.dirname(args.out_csv)
     if out_dir:
@@ -89,7 +100,12 @@ def main():
                 round(float(preds[i, 0]), 6),               # r_vote_pred
                 round(float(preds[i, 1]), 6),               # d_vote_pred
             ])
+            r_vote_difference += abs(preds[i, 0] - training_data[i][5])
+            d_vote_difference += abs(preds[i, 1] - training_data[i][6])
+
     print(f"Wrote {data.shape[0]} predictions -> {args.out_csv}")
+    print("Republican avg vote difference: " + str(r_vote_difference/data.shape[0]))
+    print("Democratic avg vote difference: " + str(d_vote_difference/data.shape[0]))
 
 
 if __name__ == "__main__":
