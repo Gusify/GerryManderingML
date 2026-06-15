@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from model import VoteMLP
 
 INPUT_SIZE = 64
-NUM_EPOCHS = 60
-BATCH_SIZE = 4096
+NUM_EPOCHS = 100
+BATCH_SIZE = 2048
 LEARNING_RATE = 1e-3
 MODEL_OUT = "model.pt"
 def main():
@@ -46,7 +46,7 @@ def main():
 
 
     base = training_data[:, 0:4].astype(np.float32)        # lon, lat, pop, votes
-    targets = training_data[:, 4:6].astype(np.float32)     # d_vote, r_vote
+    targets = training_data[:, 4:6].astype(np.float32)     # r_vote, d_vote
     num_blocks = training_data.shape[0]
 
     feat_mean = base.mean(axis=0)
@@ -84,7 +84,7 @@ def main():
 
     model = VoteMLP(in_dim=INPUT_SIZE * 4).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    loss_fn = nn.MSELoss()
+    loss_fn = nn.L1Loss()
 
     for epoch in range(NUM_EPOCHS):
         model.train()
@@ -96,15 +96,13 @@ def main():
             loss.backward()
             optimizer.step()
             running += loss.item() * xb.shape[0]
-        train_mse = running / len(Xtr)
 
         model.eval()
         with torch.no_grad():
             vpred = model(Xva)
             val_mae = (vpred - Yva).abs().mean().item()
             win_acc = ((vpred[:, 0] > vpred[:, 1]) == (Yva[:, 0] > Yva[:, 1])).float().mean().item()
-        print(f"epoch {epoch + 1:>3}  train_mse {train_mse:.5f}  "
-              f"val_mae {val_mae:.5f}  win_acc {win_acc:.3f}")
+        print(f"epoch {epoch + 1:>3} val_mae {val_mae:.5f}  win_acc {win_acc:.3f}")
 
     torch.save(
         {"state_dict": model.state_dict(), "input_size": INPUT_SIZE,
