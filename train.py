@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from model import VoteMLP
 
 INPUT_SIZE = 64
-NUM_EPOCHS = 30          
+NUM_EPOCHS = 60
 BATCH_SIZE = 4096
 LEARNING_RATE = 1e-3
 MODEL_OUT = "model.pt"

@@ -11,7 +11,7 @@ class VoteMLP(nn.Module):
         for h in hidden:
             layers += [nn.Linear(prev, h), nn.ReLU(), nn.Dropout(0.1)]
             prev = h
-        layers += [nn.Linear(prev, 2), nn.Sigmoid()]
+        layers += [nn.Linear(prev, 2)]
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
