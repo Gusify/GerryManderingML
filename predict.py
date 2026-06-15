@@ -86,8 +86,8 @@ def main():
                 round(float(data[i, 2]), 7),                # lat
                 int(data[i, 3]),                            # voting_pop
                 round(float(data[i, 4]), 4),                # total_votes
-                round(float(preds[i, 0]), 6),               # d_vote_pred
-                round(float(preds[i, 1]), 6),               # r_vote_pred
+                round(float(preds[i, 0]), 6),               # r_vote_pred
+                round(float(preds[i, 1]), 6),               # d_vote_pred
             ])
     print(f"Wrote {data.shape[0]} predictions -> {args.out_csv}")
 

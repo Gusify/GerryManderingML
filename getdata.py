@@ -3,9 +3,9 @@ import csv
 import random
 
 # uncomment and set your own paths. Make sure to not include file extension
-sf_path = "D:/AIProj1/rawdata/ca_2020_gen_2020_blocks/ca_2020_gen_2020_blocks"
-csv_train_path = "D:/AIProj1/cleandata/california_training.csv"
-csv_test_path = "D:/AIProj1/cleandata/california_testing.csv"
+sf_path = "D:/AIProj1/rawdata/tx_2020_gen_2020_blocks/tx_2020_gen_2020_blocks"
+csv_train_path = "D:/AIProj1/cleandata/texas_training.csv"
+csv_test_path = "D:/AIProj1/cleandata/texas_testing.csv"
 
 sf = shapefile.Reader(sf_path)
 fields = sf.fields[1:]
@@ -48,7 +48,7 @@ for data in records:
         d_vote = d_vote / total_votes
         r_vote = r_vote / total_votes
         test_data.append([id, lat, long, voting_pop, total_votes])
-        train_data.append([id, lat, long, voting_pop, total_votes, d_vote, r_vote])
+        train_data.append([id, lat, long, voting_pop, total_votes, r_vote, d_vote])
     
 with open(csv_train_path, 'w', newline='') as csvtrainfile:
     writer = csv.writer(csvtrainfile)
