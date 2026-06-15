@@ -13,14 +13,14 @@ def main():
     args = ap.parse_args()
 
     data, preds = predict(args.model, args.test_csv)
-    truth = load_csv(args.truth_csv)                        # id..d_vote,r_vote
+    truth = load_csv(args.truth_csv)                        # id..r_vote,d_vote
 
     truth_by_id = {int(r[0]): (r[5], r[6]) for r in truth}
     y = np.array([truth_by_id[int(i)] for i in data[:, 0]], dtype=np.float32)
 
     mae = np.abs(preds - y).mean()
-    mae_d = np.abs(preds[:, 0] - y[:, 0]).mean()
-    mae_r = np.abs(preds[:, 1] - y[:, 1]).mean()
+    mae_r = np.abs(preds[:, 0] - y[:, 0]).mean()
+    mae_d = np.abs(preds[:, 1] - y[:, 1]).mean()
     rmse = np.sqrt(((preds - y) ** 2).mean())
     win_acc = ((preds[:, 0] > preds[:, 1]) == (y[:, 0] > y[:, 1])).mean()
 
