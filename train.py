@@ -84,7 +84,7 @@ def main():
 
     model = VoteMLP(in_dim=INPUT_SIZE * 4).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    loss_fn = nn.L1Loss()
+    loss_fn = nn.L1Loss() #Mean Absolute Error
 
     for epoch in range(NUM_EPOCHS):
         model.train()
