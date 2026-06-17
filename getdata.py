@@ -1,6 +1,5 @@
 import shapefile
 import csv
-import random
 
 # uncomment and set your own paths. Make sure to not include file extension
 sf_path = "D:/AIProj1/rawdata/tx_2020_gen_2020_blocks/tx_2020_gen_2020_blocks"
