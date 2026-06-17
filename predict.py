@@ -67,9 +67,9 @@ def predict(model_path, test_path, device=None):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("test_csv")
-    ap.add_argument("out_csv")
-    ap.add_argument("-train_path")
+    ap.add_argument("test_csv") #csv file to predict values of
+    ap.add_argument("out_csv") #where to put new csv file, 2nd arg
+    ap.add_argument("-train_path") #use -train_path to set the training file if you want to compare difference in actual vs expected
     ap.add_argument("--model", default="model.pt")
     args = ap.parse_args()
 
