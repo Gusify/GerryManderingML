@@ -3,6 +3,8 @@ import pygad
 import argparse
 import csv
 
+
+ACCEPTABLE_POPULATION_RANGE = 1.2 # acceptable ratio between state's min:max population district. i.e. 1.2 means 1.2 * min >= max
 #taken from predict.py
 def load_csv(path):
     rows = []
@@ -30,9 +32,10 @@ def get_population_per_district(districts):
     populations_np = np.array(populations)
     return populations_np
     
+#def generate_points(lon_max, long_min, lat_max, lat_min):
 
 
-def fitness_func(ga_instance, solution, solution_idx):
+#def fitness_func(ga_instance, solution, solution_idx):
 
 
 def main():
@@ -48,7 +51,14 @@ def main():
     for data in predicted_data:
         data[5] = round(data[4] * data[6]) #d_vote * num_votes, done first because 4 is deleted
         data[4] = round(data[4] * data[5]) #r_vote * num_votes,
-    predicted_data = np.delete(predicted_data, 6, axis=1) # trim extra columns
+    predicted_data = np.delete(predicted_data, 6, axis=1) # trim off num votes column
+
+    longitudes = predicted_data[:, 1]
+    latitudes = predicted_data[:, 2]
+    max_longitude = longitudes.max()
+    min_longitude = longitudes.min()
+    max_latitude = latitudes.max()
+    min_latitude = latitudes.min() 
     #new shape is [id, long, lat, pop, republican_votes, democrat_votes]
     #worth noting btw that the total is often 1-2 less than the expected vote amount because of rounding. Could do ceiling and have it be more also
     
