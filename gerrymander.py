@@ -7,7 +7,8 @@ import math
 
 
 ACCEPTABLE_POPULATION_RANGE = 1.2 # acceptable ratio between state's min:max population district. i.e. 1.2 means 1.2 * min >= max
-NUM_DISTRICTS = 52
+STATE = "tennessee" #for filepath
+NUM_DISTRICTS = 9
 REPUBLICAN_DISTRICTS = 6 #treat democrat as num_districts - republican_districts, 2 variables seems less good
 #taken from predict.py
 def load_csv(path):
@@ -24,7 +25,6 @@ def determine_republican_districts(districts):
         sum_values = np.sum(district, axis=0)# 0-3 id, lat, lon, pop. 4=R, 5=D
         if sum_values[4] > sum_values[5]: #R_vote > D_vote
             num_r_districts += 1
-    
     return num_r_districts
 
 
@@ -100,19 +100,19 @@ def main():
     #ap.add_argument("districts_csv") # where to print district mappings to
     #args = ap.parse_args()
 
-    predicted_data = load_csv("D:/AIProj1/predict_data/california_predict.csv")
+    predicted_data = load_csv("D:/AIProj1/predict_data/" + STATE +"_predict.csv")
 
 
     for data in predicted_data:
-        data[5] = round(data[4] * data[6]) #d_vote * num_votes, done first because 4 is deleted
-        data[4] = round(data[4] * data[5]) #r_vote * num_votes,
-    predicted_data = np.delete(predicted_data, 6, axis=1) # trim off num votes column
+        data[6] = round(data[4] * data[6]) #d_vote * num_votes
+        data[5] = round(data[4] * data[5]) #r_vote * num_votes,
+    predicted_data = np.delete(predicted_data, 4, axis=1) # trim off num votes column
     #new shape is [id, long, lat, pop, republican_votes, democrat_votes]
     #worth noting btw that the total is often 1-2 less than the expected vote amount because of rounding. Could do ceiling and have it be more also
     
     districts = equal_population_districts(predicted_data)
-    print(get_population_per_district(districts))
-
+    print(determine_republican_districts(districts))
+    
     
 
     
