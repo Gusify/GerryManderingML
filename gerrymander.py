@@ -109,9 +109,9 @@ def fitness_func(ga_instance, solution, solution_idx): #rewards closer seats and
     pops = get_population_per_district(solution)
     population_ratio = max(pops) / min(pops)
     if population_ratio <= ACCEPTABLE_POPULATION_RANGE: #good maps tend to have some disparity in population but not too much. Helps to encourage some changes but less than a seat's worth
-        district_main_value += (population_ratio - 1)
+        district_main_value += (population_ratio - 1) # will add value. cannot be <1
     else:
-        district_main_value = district_main_value - (population_ratio - 1) # seats matter more but still punish incorrect population distribution
+        district_main_value -= (population_ratio - 1) # seats matter more but still punish incorrect population distribution
     return district_main_value
 
 
