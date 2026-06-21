@@ -104,14 +104,15 @@ def get_district_centroids(districts): # centers of all districts[[lon, lat] ...
         
 
 def fitness_func(ga_instance, solution, solution_idx): #rewards closer seats and more population spread without being over limit
-    district_ratio = (1 / abs(determine_republican_districts(solution)+0.1 - REPUBLICAN_DISTRICTS)) #higher number the closer it is to ideal value. .1 is to prevent divide by zero
+    seat_difference = abs(determine_republican_districts(solution) - REPUBLICAN_DISTRICTS)
+    district_main_value = NUM_DISTRICTS - seat_difference # higher number when seats closer to desired
     pops = get_population_per_district(solution)
     population_ratio = max(pops) / min(pops)
-    if population_ratio <= ACCEPTABLE_POPULATION_RANGE: #good maps tend to have some disparity in population but not too much. Helps to encourage some changes
-        district_ratio * population_ratio
+    if population_ratio <= ACCEPTABLE_POPULATION_RANGE: #good maps tend to have some disparity in population but not too much. Helps to encourage some changes but less than a seat's worth
+        district_main_value += (population_ratio - 1)
     else:
-        district_ratio * 0.9 # seats matter more but still punish incorrect population distribution
-    return district_ratio
+        district_main_value = district_main_value - (population_ratio - 1) # seats matter more but still punish incorrect population distribution
+    return district_main_value
 
 
 def main():
@@ -131,7 +132,12 @@ def main():
     #worth noting btw that the total is often 1-2 less than the expected vote amount because of rounding. Could do ceiling and have it be more also
     
     districts = equal_population_districts(predicted_data)
+    districts_2 = equal_population_districts(predicted_data, num_strips= 2, rotation_deg= 63)
+    print(fitness_func(None, districts, None))
+    print(fitness_func(None, districts_2, None))
     print(determine_republican_districts(districts))
+    print(determine_republican_districts(districts_2))
+
     
     
 
