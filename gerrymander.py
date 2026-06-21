@@ -19,7 +19,7 @@ def load_csv(path):
             rows.append(row)
     return np.array(rows, dtype=np.float64)
 
-def determine_republican_districts(districts):
+def determine_republican_districts(districts): # gets # republican districts. Treat democrat as n-return value
     num_r_districts = 0
     for district in districts:
         sum_values = np.sum(district, axis=0)# 0-3 id, lat, lon, pop. 4=R, 5=D
@@ -28,7 +28,7 @@ def determine_republican_districts(districts):
     return num_r_districts
 
 
-def get_population_per_district(districts):
+def get_population_per_district(districts): # array of population per district
     populations = []
     for district in districts:
         sum_values = np.sum(district, axis=0) # 3 = pop
@@ -89,9 +89,21 @@ def equal_population_districts(blocks, num_districts=NUM_DISTRICTS, # method gen
             d.append([0, 0, 0, 0, 0, 0])
     return districts
 
+def get_district_centroids(districts): # centers of all districts[[lon, lat] ...]
+    centroids = []
+    for district in districts:
+        lons = district[:, 1]
+        lats = district[:, 2]
+        center_lon = (max(lons) + min(lons)) / 2
+        center_lat = (max(lats) + min(lats)) / 2
+        centroids.append([center_lon, center_lat])
+    centroids_np = np.array(centroids)
+    return centroids_np
+
+
         
 
-def fitness_func(ga_instance, solution, solution_idx):
+def fitness_func(ga_instance, solution, solution_idx): #rewards closer seats and more population spread without being over limit
     district_ratio = (1 / abs(determine_republican_districts(solution)+0.1 - REPUBLICAN_DISTRICTS)) #higher number the closer it is to ideal value. .1 is to prevent divide by zero
     pops = get_population_per_district(solution)
     population_ratio = max(pops) / min(pops)
