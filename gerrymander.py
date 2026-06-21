@@ -91,7 +91,15 @@ def equal_population_districts(blocks, num_districts=NUM_DISTRICTS, # method gen
 
         
 
-#def fitness_func(ga_instance, solution, solution_idx):
+def fitness_func(ga_instance, solution, solution_idx):
+    district_ratio = (1 / abs(determine_republican_districts(solution)+0.1 - REPUBLICAN_DISTRICTS)) #higher number the closer it is to ideal value. .1 is to prevent divide by zero
+    pops = get_population_per_district(solution)
+    population_ratio = max(pops) / min(pops)
+    if population_ratio <= ACCEPTABLE_POPULATION_RANGE: #good maps tend to have some disparity in population but not too much. Helps to encourage some changes
+        district_ratio * population_ratio
+    else:
+        district_ratio * 0.9 # seats matter more but still punish incorrect population distribution
+    return district_ratio
 
 
 def main():
