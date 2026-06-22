@@ -8,9 +8,9 @@ import scipy
 
 
 ACCEPTABLE_POPULATION_RANGE = 1.15 # acceptable ratio between state's min:max population district. i.e. 1.2 means 1.2 * min >= max
-STATE = "tennessee" #for filepath, feel free to change to argparse
-NUM_DISTRICTS = 9
-REPUBLICAN_DISTRICTS = 6 #treat democrat as num_districts - republican_districts, 2 variables seems less good
+STATE = "california" #for filepath, feel free to change to argparse
+NUM_DISTRICTS = 52
+REPUBLICAN_DISTRICTS = 10 #treat democrat as num_districts - republican_districts, 2 variables seems less good
 NN_TREE = None #nearest neighbors tree. Set in main
 NUM_BLOCKS = None #number of blocks, set in main
 #taken from predict.py
@@ -123,6 +123,9 @@ def equal_population_districts(blocks, num_districts=NUM_DISTRICTS,
 def get_district_centroids(districts): # centers of all districts[[lon, lat] ...]
     centroids = []
     for district in districts:
+        if len(district) == 0:
+            centroids.append([0,0]) #prevents empty index error. empty districts are punished by fitness function
+            continue
         district = np.array(district)
         lons = district[:, 1]
         lats = district[:, 2]
@@ -137,6 +140,9 @@ def get_district_centroids(districts): # centers of all districts[[lon, lat] ...
 def fitness_func(ga_instance, solution, solution_idx): #rewards closer seats and more population spread without being over limit
     reshaped_solution = solution.reshape(NUM_BLOCKS, 7)
     districts = to_district_array(reshaped_solution)
+    for district in districts:
+        if len(district) == 0:
+            return -1 #harshly punish empty districts. Also prevents null checks
     seat_difference = abs(determine_republican_districts(districts) - REPUBLICAN_DISTRICTS)
     district_main_value = NUM_DISTRICTS - seat_difference # higher number when seats closer to desired
     pops = get_population_per_district(districts)
@@ -195,7 +201,7 @@ def main():
     initial_population = [sorted_blocks.flatten(), sorted_blocks_2.flatten(), sorted_blocks_3.flatten(), sorted_blocks_4.flatten()]
 
     fitness_function = fitness_func
-    num_generations = 100
+    num_generations = 1000
     num_parents_mating = 2
 
     num_genes = len(sorted_blocks)
@@ -223,6 +229,24 @@ def main():
     solution, solution_fitness, solution_idx = ga_instance.best_solution()
     print("Parameters of the best solution : {solution}".format(solution=solution))
     print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
+
+    solution = solution.reshape(NUM_BLOCKS, 7)
+    solution_districts = to_district_array(solution)
+    num_republican_solution = determine_republican_districts(solution_districts)
+    print("Number of Districts: " + str(NUM_DISTRICTS))
+    print("Desired number of Republican/Democrat Districts: " + str(REPUBLICAN_DISTRICTS)+ "/" + str(NUM_DISTRICTS - REPUBLICAN_DISTRICTS))
+    print("Genetic Algorithm Result:" + str(num_republican_solution) + "/" + str(NUM_DISTRICTS - num_republican_solution))
+    print("Population per district" + str(get_population_per_district(solution_districts)))
+
+    print_file_path = "D:/AIProj1/gerrymandereddata/" + STATE + "_districted.csv"
+    with open(print_file_path, "w", newline="") as output_file:
+        writer = csv.writer(output_file)
+        writer.writerow("Number of Districts: " + str(NUM_DISTRICTS))
+        writer.writerow("Desired number of Republican/Democrat Districts: " + str(REPUBLICAN_DISTRICTS)+ "/" + str(NUM_DISTRICTS - REPUBLICAN_DISTRICTS))
+        writer.writerow("Genetic Algorithm Result:" + str(num_republican_solution) + "/" + str(NUM_DISTRICTS - num_republican_solution))
+        writer.writerow(["id", "longitude", "latitude", "voting population", "R votes", "D votes", "district"])
+        writer.writerows(solution)
+
     
 
 
