@@ -183,6 +183,7 @@ def main():
     sorted_blocks_2 = equal_population_districts(predicted_data, num_strips= 2, rotation_deg=63)
     districts_2 = to_district_array(sorted_blocks_2)
 
+    combined_pop = [sorted_blocks, sorted_blocks_2]
     fitness_function = fitness_func
     num_generations = 100
     num_parents_mating = 4
@@ -194,19 +195,18 @@ def main():
 
     crossover_type = "two_points"
     mutation_function = mutation_func
-    mutation_percent_genes = NUM_DISTRICTS/len(sorted_blocks)
+    mutation_percent_genes = 1
 
     #setup and variables inspired by https://pygad.readthedocs.io/en/latest/index.html
     ga_instance = pygad.GA(num_generations=num_generations, 
                            fitness_func=fitness_function,
-                           sol_per_pop=sol_per_pop,
                            num_parents_mating=num_parents_mating,
                            num_genes=num_genes,
                            crossover_type=crossover_type,
                            mutation_type=mutation_function,
                            mutation_percent_genes=mutation_percent_genes,
                            parent_selection_type=parent_selection_type,
-                           initial_population=sorted_blocks
+                           initial_population=combined_pop
                            )
     
     ga_instance.run()
