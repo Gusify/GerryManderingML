@@ -8,10 +8,11 @@ import scipy
 
 
 ACCEPTABLE_POPULATION_RANGE = 1.15 # acceptable ratio between state's min:max population district. i.e. 1.2 means 1.2 * min >= max
-STATE = "tennessee" #for filepath
+STATE = "tennessee" #for filepath, feel free to change to argparse
 NUM_DISTRICTS = 9
 REPUBLICAN_DISTRICTS = 6 #treat democrat as num_districts - republican_districts, 2 variables seems less good
-NN_TREE = None
+NN_TREE = None #nearest neighbors tree. Set in main
+NUM_BLOCKS = None #number of blocks, set in main
 #taken from predict.py
 def load_csv(path):
     rows = []
@@ -134,7 +135,8 @@ def get_district_centroids(districts): # centers of all districts[[lon, lat] ...
         
 
 def fitness_func(ga_instance, solution, solution_idx): #rewards closer seats and more population spread without being over limit
-    districts = to_district_array(solution)
+    reshaped_solution = solution.reshape(NUM_BLOCKS, 7)
+    districts = to_district_array(reshaped_solution)
     seat_difference = abs(determine_republican_districts(districts) - REPUBLICAN_DISTRICTS)
     district_main_value = NUM_DISTRICTS - seat_difference # higher number when seats closer to desired
     pops = get_population_per_district(districts)
@@ -146,15 +148,21 @@ def fitness_func(ga_instance, solution, solution_idx): #rewards closer seats and
     return district_main_value
 
 def mutation_func(offspring, ga_instance):
-    district_num = random.randint(1, NUM_DISTRICTS) - 1
-    districts = to_district_array(offspring)
-    centroids = get_district_centroids(districts)
-    num_blocks = len(districts[district_num])
-    centroid = centroids[district_num]
-    result = NN_TREE.query(centroid, k=num_blocks + 5)
-    selected_outlier = random.randint(0, 4)
-    block_to_flip = result[1][num_blocks + selected_outlier] # index of block
-    offspring[block_to_flip][6] = district_num + 1 #flip to district
+    return_offspring = []
+    for solution in offspring:
+        reshaped_offspring = solution.reshape(NUM_BLOCKS, 7)
+        reshaped_offspring = np.array(reshaped_offspring, dtype=object)
+        district_num = random.randint(1, NUM_DISTRICTS) - 1
+        districts = to_district_array(reshaped_offspring)
+        centroids = get_district_centroids(districts)
+        num_blocks = len(districts[district_num])
+        centroid = centroids[district_num]
+        result = NN_TREE.query(centroid, k=num_blocks + 5)
+        selected_outlier = random.randint(0, 4)
+        block_to_flip = result[1][num_blocks + selected_outlier] # index of block
+        reshaped_offspring[block_to_flip][6] = district_num + 1 #flip to district
+        return_offspring.append(reshaped_offspring.flatten())
+    offspring = np.array(return_offspring)
     return offspring
 
 
@@ -175,20 +183,21 @@ def main():
     #worth noting btw that the total is often 1-2 less than the expected vote amount because of rounding. Could do ceiling and have it be more also
 
     sorted_blocks = equal_population_districts(predicted_data)
+    global NUM_BLOCKS
+    NUM_BLOCKS = len(sorted_blocks)
     coordinates = sorted_blocks[:, 1:3]
     global NN_TREE
     NN_TREE = scipy.spatial.KDTree(coordinates, leafsize=100)
-    mutation_func(sorted_blocks, None)
-    districts = to_district_array(sorted_blocks)
     sorted_blocks_2 = equal_population_districts(predicted_data, num_strips= 2, rotation_deg=63)
-    districts_2 = to_district_array(sorted_blocks_2)
+    sorted_blocks_3 = equal_population_districts(predicted_data, num_strips= 1, rotation_deg=97)
+    sorted_blocks_4 = equal_population_districts(predicted_data, num_strips= 3, rotation_deg=199)
 
-    combined_pop = [sorted_blocks, sorted_blocks_2]
+    initial_population = [sorted_blocks.flatten(), sorted_blocks_2.flatten(), sorted_blocks_3.flatten(), sorted_blocks_4.flatten()]
+
     fitness_function = fitness_func
     num_generations = 100
-    num_parents_mating = 4
+    num_parents_mating = 2
 
-    sol_per_pop = 8
     num_genes = len(sorted_blocks)
 
     parent_selection_type = "sss"
@@ -206,12 +215,14 @@ def main():
                            mutation_type=mutation_function,
                            mutation_percent_genes=mutation_percent_genes,
                            parent_selection_type=parent_selection_type,
-                           initial_population=combined_pop
+                           initial_population=initial_population
                            )
     
     ga_instance.run()
     
-
+    solution, solution_fitness, solution_idx = ga_instance.best_solution()
+    print("Parameters of the best solution : {solution}".format(solution=solution))
+    print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
     
 
 
