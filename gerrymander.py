@@ -191,7 +191,6 @@ def main():
     num_genes = len(sorted_blocks)
 
     parent_selection_type = "sss"
-    keep_parents = 1
 
     crossover_type = "two_points"
     mutation_function = mutation_func
@@ -207,7 +206,6 @@ def main():
                            mutation_type=mutation_function,
                            mutation_percent_genes=mutation_percent_genes,
                            parent_selection_type=parent_selection_type,
-                           keep_parents=keep_parents,
                            initial_population=sorted_blocks
                            )
     
