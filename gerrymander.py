@@ -24,8 +24,8 @@ def to_district_array(blocks):
     for block in blocks:
         district_num = int(block[6] - 1)
         districts[district_num].append(block)
-
-    return districts
+    districts_np = np.array(districts, dtype=object) #dtype - object allows inequal subarray lengths
+    return districts_np
 
 
 def determine_republican_districts(districts): # gets # republican districts. Treat democrat as n-return value
