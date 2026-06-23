@@ -30,8 +30,14 @@ def build_adjacency(coordinates):
     # We only have block centroids (points), not polygons, so approximate
     # "neighboring blocks" with a Delaunay triangulation of the centroids.
     # Returns an adjacency list aligned with the genome's block ordering.
-    tri = scipy.spatial.Delaunay(coordinates, qhull_options="QJ")
-    adj = [set() for _ in range(len(coordinates))]
+    coords = np.ascontiguousarray(coordinates, dtype=np.float64)
+    try:
+        tri = scipy.spatial.Delaunay(coords)
+    except scipy.spatial.QhullError:
+        # joggle as a fallback only for degenerate (e.g. collinear) point sets;
+        # QJ can fail on large well-formed inputs, so it is not the default
+        tri = scipy.spatial.Delaunay(coords, qhull_options="QJ")
+    adj = [set() for _ in range(len(coords))]
     for a, b, c in tri.simplices:
         adj[a].update((b, c))
         adj[b].update((a, c))
