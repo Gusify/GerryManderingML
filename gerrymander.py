@@ -340,8 +340,8 @@ def main():
     # NOTE: the model writes d_vote in col5 and r_vote in col6 (verified: R-leaning
     # blocks carry the larger value in col6), so R = total_votes*col6, D = total_votes*col5.
     for data in predicted_data:
-        r_votes = round(data[4] * data[6]) #total_votes * r_vote
-        d_votes = round(data[4] * data[5]) #total_votes * d_vote
+        r_votes = round(data[4] * data[5]) #total_votes * r_vote
+        d_votes = round(data[4] * data[6]) #total_votes * d_vote
         data[4] = r_votes #col4 -> Republican votes
         data[5] = d_votes #col5 -> Democrat votes
     #new shape is [id, long, lat, pop, republican_votes, democrat_votes, bad column filled in later]
