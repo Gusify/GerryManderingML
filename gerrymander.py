@@ -25,7 +25,7 @@ def load_csv(path):
 def to_district_array(blocks):
     districts = [[] for _ in range (NUM_DISTRICTS)]
     for block in blocks:
-        district_num = int(block[6] - 1)
+        district_num = int(block[6])
         districts[district_num].append(block)
     districts_np = np.array(districts, dtype=object) #dtype - object allows inequal subarray lengths
     return districts_np
@@ -166,7 +166,7 @@ def mutation_func(offspring, ga_instance):
         result = NN_TREE.query(centroid, k=num_blocks + 5)
         selected_outlier = random.randint(0, 4)
         block_to_flip = result[1][num_blocks + selected_outlier] # index of block
-        reshaped_offspring[block_to_flip][6] = district_num + 1 #flip to district
+        reshaped_offspring[block_to_flip][6] = district_num #flip to district
         return_offspring.append(reshaped_offspring.flatten())
     offspring = np.array(return_offspring)
     return offspring
@@ -201,8 +201,10 @@ def main():
     initial_population = [sorted_blocks.flatten(), sorted_blocks_2.flatten(), sorted_blocks_3.flatten(), sorted_blocks_4.flatten()]
 
     fitness_function = fitness_func
-    num_generations = 1000
+    num_generations = 10
     num_parents_mating = 2
+
+    stop_criteria = "reach_" + str(NUM_DISTRICTS) #stops if fitness function returns value >= num districts, ideal # of seats with a valid population
 
     num_genes = len(sorted_blocks)
 
@@ -221,7 +223,8 @@ def main():
                            mutation_type=mutation_function,
                            mutation_percent_genes=mutation_percent_genes,
                            parent_selection_type=parent_selection_type,
-                           initial_population=initial_population
+                           initial_population=initial_population,
+                           stop_criteria=stop_criteria
                            )
     
     ga_instance.run()
@@ -233,19 +236,41 @@ def main():
     solution = solution.reshape(NUM_BLOCKS, 7)
     solution_districts = to_district_array(solution)
     num_republican_solution = determine_republican_districts(solution_districts)
+    populations_solution = get_population_per_district(solution_districts)
     print("Number of Districts: " + str(NUM_DISTRICTS))
     print("Desired number of Republican/Democrat Districts: " + str(REPUBLICAN_DISTRICTS)+ "/" + str(NUM_DISTRICTS - REPUBLICAN_DISTRICTS))
     print("Genetic Algorithm Result:" + str(num_republican_solution) + "/" + str(NUM_DISTRICTS - num_republican_solution))
     print("Population per district" + str(get_population_per_district(solution_districts)))
 
     print_file_path = "D:/AIProj1/gerrymandereddata/" + STATE + "_districted.csv"
-    with open(print_file_path, "w", newline="") as output_file:
+
+    #Will output all census blocks with the district as the last column
+    # with open(print_file_path, "w", newline="") as output_file: 
+    #     writer = csv.writer(output_file)
+    #     writer.writerow("Number of Districts: " + str(NUM_DISTRICTS))
+    #     writer.writerow("Desired number of Republican/Democrat Districts: " + str(REPUBLICAN_DISTRICTS)+ "/" + str(NUM_DISTRICTS - REPUBLICAN_DISTRICTS))
+    #     writer.writerow("Genetic Algorithm Result:" + str(num_republican_solution) + "/" + str(NUM_DISTRICTS - num_republican_solution))
+    #     writer.writerow(["id", "longitude", "latitude", "voting population", "R votes", "D votes", "district"])
+    #     writer.writerows(solution)
+
+    with open(print_file_path, "w", newline="") as output_file: 
+
         writer = csv.writer(output_file)
-        writer.writerow("Number of Districts: " + str(NUM_DISTRICTS))
-        writer.writerow("Desired number of Republican/Democrat Districts: " + str(REPUBLICAN_DISTRICTS)+ "/" + str(NUM_DISTRICTS - REPUBLICAN_DISTRICTS))
-        writer.writerow("Genetic Algorithm Result:" + str(num_republican_solution) + "/" + str(NUM_DISTRICTS - num_republican_solution))
-        writer.writerow(["id", "longitude", "latitude", "voting population", "R votes", "D votes", "district"])
-        writer.writerows(solution)
+        writer.writerow(["Number of Districts: " + str(NUM_DISTRICTS)])
+        writer.writerow(["Desired number of Republican/Democrat Districts: " + str(REPUBLICAN_DISTRICTS)+ "/" + str(NUM_DISTRICTS - REPUBLICAN_DISTRICTS)])
+        writer.writerow(["Genetic Algorithm Result:" + str(num_republican_solution) + "/" + str(NUM_DISTRICTS - num_republican_solution)])
+        district_num = 1
+        for district in solution_districts:
+            d_votes = 0
+            r_votes = 0
+            for block in district:
+                d_votes += block[5]
+                r_votes += block[4]
+            writer.writerow(["district num", "population", "R_votes", "D_votes"])
+            writer.writerow([str(district_num), populations_solution[district_num - 1], str(r_votes), str(d_votes)])
+            writer.writerow(["id", "longitude", "latitude", "voting population", "R votes", "D votes", "district"])
+            writer.writerows(district)
+
 
     
 
