@@ -102,6 +102,7 @@ def main():
             vpred = model(Xva)
             val_mae = (vpred - Yva).abs().mean().item()
             win_acc = ((vpred[:, 0] > vpred[:, 1]) == (Yva[:, 0] > Yva[:, 1])).float().mean().item()
+
         print(f"epoch {epoch + 1:>3} val_mae {val_mae:.5f}  win_acc {win_acc:.3f}")
 
     torch.save(
