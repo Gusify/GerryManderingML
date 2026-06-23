@@ -12,8 +12,8 @@ import scipy.spatial
 
 ACCEPTABLE_POPULATION_RANGE = 1.15 # acceptable ratio between state's min:max population district. i.e. 1.2 means 1.2 * min >= max
 STATE = "california" #for filepath, feel free to change to argparse
-NUM_DISTRICTS = 52
-REPUBLICAN_DISTRICTS = 10 #treat democrat as num_districts - republican_districts, 2 variables seems less good
+NUM_DISTRICTS = None
+REPUBLICAN_DISTRICTS = None 
 ADJACENCY = None #block adjacency list (Delaunay), index-aligned with the genome. Set in main
 NUM_BLOCKS = None #number of blocks, set in main
 #taken from predict.py
@@ -45,65 +45,116 @@ def build_adjacency(coordinates):
     return [np.fromiter(s, dtype=np.int64) for s in adj]
 
 
-def grow_districts(coordinates, populations, adjacency, num_districts, rng):
-    # Build a contiguous, roughly equal-population partition by growing districts
-    # outward on the adjacency graph. A block is only ever assigned when it borders
-    # the district claiming it, so every district is guaranteed connected. We always
-    # grow the currently-smallest district, which keeps populations balanced.
-    n = len(coordinates)
-    assign = np.full(n, -1, dtype=np.int64)
+def _fix_contiguity(assign, adjacency, num_districts):
+    """Reassign disconnected fragments into adjacent districts, in-place."""
+    n = len(assign)
+    improved = True
+    while improved:
+        improved = False
+        for d in range(num_districts):
+            members = np.where(assign == d)[0]
+            if len(members) == 0:
+                continue
 
-    # spread the seeds out with farthest-point sampling (random first seed for variety)
-    seeds = [int(rng.integers(n))]
-    d2 = np.sum((coordinates - coordinates[seeds[0]]) ** 2, axis=1)
-    for _ in range(num_districts - 1):
-        nxt = int(np.argmax(d2))
-        seeds.append(nxt)
-        d2 = np.minimum(d2, np.sum((coordinates - coordinates[nxt]) ** 2, axis=1))
+            # BFS to find all connected components of district d
+            visited: set[int] = set()
+            components: list[list[int]] = []
+            for start in members:
+                if start in visited:
+                    continue
+                comp: list[int] = []
+                stack = [int(start)]
+                while stack:
+                    cur = stack.pop()
+                    if cur in visited:
+                        continue
+                    visited.add(cur)
+                    comp.append(cur)
+                    for nb in adjacency[cur]:
+                        if assign[nb] == d and nb not in visited:
+                            stack.append(int(nb))
+                components.append(comp)
 
-    dist_pop = np.zeros(num_districts)
-    frontier = [set() for _ in range(num_districts)]
-    for d, s in enumerate(seeds):
-        assign[s] = d
-        dist_pop[d] = populations[s]
-        for nb in adjacency[s]:
-            if assign[nb] == -1:
-                frontier[d].add(int(nb))
+            if len(components) == 1:
+                continue  # already contiguous
 
-    assigned = num_districts
-    heap = [(dist_pop[d], d) for d in range(num_districts)]
-    heapq.heapify(heap)
-    while assigned < n and heap:
-        _, d = heapq.heappop(heap)
-        block = None
-        while frontier[d]:                 # find an unassigned block on this district's border
-            cand = frontier[d].pop()
-            if assign[cand] == -1:
-                block = cand
-                break
-        if block is None:
-            continue                       # district is sealed off; drop it from the heap
-        assign[block] = d
-        dist_pop[d] += populations[block]
-        assigned += 1
-        for nb in adjacency[block]:
-            if assign[nb] == -1:
-                frontier[d].add(int(nb))
-        heapq.heappush(heap, (dist_pop[d], d))
+            # keep the largest fragment; reroute the rest
+            components.sort(key=len, reverse=True)
+            for frag in components[1:]:
+                # count shared edges to each neighboring district
+                neighbor_votes: dict[int, int] = {}
+                for b in frag:
+                    for nb in adjacency[b]:
+                        nd = int(assign[nb])
+                        if nd != d:
+                            neighbor_votes[nd] = neighbor_votes.get(nd, 0) + 1
+                if not neighbor_votes:
+                    continue  # fragment is an island — can't repair
+                target = max(neighbor_votes, key=neighbor_votes.get)
+                for b in frag:
+                    assign[b] = target
+                improved = True
 
-    # safety net: fold any stragglers into an adjacent district (still contiguous)
-    while assigned < n:
-        progressed = False
-        for b in np.where(assign == -1)[0]:
-            for nb in adjacency[b]:
-                if assign[nb] != -1:
-                    assign[b] = assign[nb]
-                    assigned += 1
-                    progressed = True
-                    break
-        if not progressed:
-            break
     return assign
+
+def _equal_cuts(pops, n): #helper function for equal_population_districts, generated by Claude Sonnet 4.6
+    """Return n+1 cut indices into pops such that each chunk has
+    roughly equal total population."""
+    cum = np.cumsum(pops)
+    total = cum[-1]
+    cuts = [0]
+    for k in range(1, n):
+        cuts.append(int(np.searchsorted(cum, total * k / n)))
+    cuts.append(len(pops))
+    return cuts
+
+def equal_population_districts(blocks, num_districts,
+                                rotation_deg=0, num_strips=None):
+    theta = math.radians(rotation_deg)
+    cos_a, sin_a = math.cos(theta), math.sin(theta)
+    def rotate(lon, lat):
+        return lon * cos_a - lat * sin_a, lon * sin_a + lat * cos_a
+
+    blocks = sorted(blocks, key=lambda b: rotate(b[1], b[2])[1])
+    rot = [rotate(b[1], b[2]) for b in blocks]
+
+    num_strips = num_strips or max(1, round(num_districts ** 0.5))
+    base, rem = divmod(num_districts, num_strips)
+    districts_per_strip = [base + (1 if i < rem else 0) for i in range(num_strips)]
+
+    pops = np.array([b[3] for b in blocks], dtype=float)
+    strip_cuts = _equal_cuts(pops, num_strips)
+
+    district_num = 0
+    for s, d_count in enumerate(districts_per_strip):
+        lo, hi = strip_cuts[s], strip_cuts[s + 1]
+        strip_blocks = blocks[lo:hi]
+
+        reverse = (s % 2 == 1)
+        strip_blocks = sorted(strip_blocks,
+                              key=lambda b: rotate(b[1], b[2])[0],
+                              reverse=reverse)
+
+        strip_pops = np.array([b[3] for b in strip_blocks], dtype=float)
+        d_cuts = _equal_cuts(strip_pops, d_count)
+
+        for d in range(d_count):
+            for block in strip_blocks[d_cuts[d]:d_cuts[d + 1]]:
+                block[6] = district_num
+            district_num += 1
+
+    blocks.sort(key=lambda x: x[0])
+
+    # build adjacency on the canonical block order, then repair contiguity
+    coordinates = np.array([[b[1], b[2]] for b in blocks])
+    adjacency = build_adjacency(coordinates)
+    assign = np.array([b[6] for b in blocks], dtype=np.int64)
+    assign = _fix_contiguity(assign, adjacency, num_districts)
+
+    for i, b in enumerate(blocks):
+        b[6] = int(assign[i])
+
+    return np.array(blocks)
 
 
 def count_extra_components(assign):
@@ -275,10 +326,8 @@ def main():
     seed_rng = np.random.default_rng(0)
     initial_population = []
     for _ in range(4):
-        assign = grow_districts(coordinates, populations, ADJACENCY, NUM_DISTRICTS, seed_rng)
-        individual = predicted_data.copy()
-        individual[:, 6] = assign
-        initial_population.append(individual.flatten())
+        assign = equal_population_districts(predicted_data, rotation_deg=random.randint(0, 359), num_strips=random.randint(0,3), num_districts=NUM_DISTRICTS)
+        initial_population.append(assign.flatten())
 
     fitness_function = fitness_func
     num_generations = 10
