@@ -5,7 +5,6 @@ import csv
 import random
 import math
 import os
-import heapq
 import scipy
 import scipy.spatial
 
