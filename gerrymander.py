@@ -330,7 +330,7 @@ def main():
         initial_population.append(assign.flatten())
 
     fitness_function = fitness_func
-    num_generations = 10
+    num_generations = 100
     num_parents_mating = 2
 
     stop_criteria = "reach_" + str(NUM_DISTRICTS) #stops if fitness function returns value >= num districts, ideal # of seats with a valid population
